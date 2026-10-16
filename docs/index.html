@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>scORPio zilat</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07060d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="scORPio zilat">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#07060d;--fg:#bfe6ff;--dim:#6f8fa8;--acc:#5cc8ff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
+body{background:radial-gradient(ellipse at 50% 40%,#1a1230 0%,var(--bg) 70%)}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#ui{position:fixed;left:0;right:0;bottom:0;padding:12px 14px calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;align-items:center}
+#brand{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:0;right:0;text-align:center;font-size:22px;font-weight:700;letter-spacing:.06em;color:var(--acc)}#brand small{display:block;font-size:10px;letter-spacing:.3em;color:var(--dim);font-weight:400;margin-top:2px}
+#status{font-size:11px;letter-spacing:.3em;color:var(--acc);text-transform:uppercase}
+#reply{min-height:44px;max-width:560px;text-align:center;font-size:14px;line-height:1.5;color:var(--fg)}
+#bar{display:flex;gap:8px;width:100%;max-width:560px}
+input{flex:1;min-width:0;background:#0d1626aa;border:1px solid #2a4a6a;border-radius:20px;color:var(--fg);padding:10px 14px;font:inherit;font-size:16px;outline:none}
+input:focus{border-color:var(--acc)}
+button{background:#0d1626aa;border:1px solid #2a4a6a;color:var(--acc);border-radius:20px;padding:0 14px;font:inherit;cursor:pointer}
+button.on{background:var(--acc);color:#001018}
+#brand{pointer-events:none}
+#top{position:fixed;left:0;right:0;top:calc(10px + env(safe-area-inset-top,0px));display:flex;justify-content:space-between;align-items:center;padding:0 12px;pointer-events:none;z-index:2}
+#top>*{pointer-events:auto}
+.pill{font-size:10px;letter-spacing:.15em;padding:5px 10px;border-radius:999px;border:1px solid #2a4a6a;color:var(--dim);background:#0d1626aa;text-transform:uppercase}
+.pill.live{border-color:#ff5a5f;color:#ff5a5f}.pill.prac{border-color:#26c281;color:#26c281}
+.ic{width:36px;height:36px;padding:0;border-radius:50%;font-size:16px}
+#trade{display:none;gap:10px;width:100%;max-width:560px}
+#trade button{flex:1;padding:14px;font-size:15px;font-weight:700;border-radius:14px}
+#yes{background:#26c281;color:#001a0e;border-color:#26c281}#no{background:#ff5a5f;color:#1a0003;border-color:#ff5a5f}
+#bot.on{background:#ff5a5f;color:#fff;border-color:#ff5a5f}
+#mkt{position:fixed;inset:0;z-index:6;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#mkt-head{display:flex;align-items:center;gap:8px;padding:10px 12px}#mkt-head b{font-size:16px}#mkt-note{flex:1;font-size:11px;color:var(--dim)}
+#mkt-tabs{display:flex;gap:6px;padding:0 12px 8px;overflow-x:auto}#mkt-tabs button,#mkt-tf button{border-radius:999px;padding:7px 12px;font-size:13px;white-space:nowrap}
+#mkt-tabs button.on,#mkt-tf button.on{background:var(--acc);color:#001018}
+#mkt-ctl{display:flex;gap:8px;align-items:center;padding:0 12px 8px;overflow-x:auto}#mkt-tf{display:flex;gap:6px}#mkt-ctl select{background:#0d1626;color:var(--fg);border:1px solid #2a4a6a;border-radius:10px;padding:7px;font:inherit;font-size:14px}
+#mkt-body{flex:1;min-height:0;padding:0 6px 6px}#mkt-body .msg{padding:18px;color:var(--dim);line-height:1.6}#mkt-body a{color:var(--acc)}
+#sheet{position:fixed;inset:0;background:#000c;display:none;align-items:flex-end;justify-content:center;z-index:5}
+#sheet .box{background:#0d1220;border:1px solid #2a4a6a;border-radius:18px 18px 0 0;width:100%;max-width:560px;padding:16px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+#sheet label{font-size:11px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="brand">scORPio zilat<small>AI TRADING ASSISTANT</small></div>
+<div id="top"><button class="ic" id="gear" title="Settings">⚙</button><span class="pill" id="pill">demo</span><span style="display:flex;gap:6px"><button class="ic" id="mkt-btn" title="Live markets">📈</button><button class="ic" id="bot" title="Autopilot">🤖</button><button class="ic" id="eye" title="Send the manager to work / stop">👁</button></span></div>
+<div id="ui">
+  <div id="status">idle</div>
+  <div id="reply">Ask me about forex, sir: strategies, indicators, risk.</div>
+  <div id="trade"><button id="yes">✓ YES, EXECUTE</button><button id="no">✕ NO</button></div>
+  <div id="bar">
+    <input id="q" placeholder="Ask about forex…" autocomplete="off">
+    <button id="mic" title="Speak">🎙</button>
+    <button id="go">Send</button>
+  </div>
+</div>
+<div id="mkt"><div id="mkt-head"><b>Markets</b><span id="mkt-note">live charts and scanners by TradingView</span><button class="ic" id="mkt-x" title="Close">✕</button></div>
+<div id="mkt-tabs"><button data-t="chart">Chart</button><button data-t="scanner">Scanner</button><button data-t="signals">Signals</button><button data-t="heatmap">Heat map</button><button data-t="calendar">Calendar</button></div>
+<div id="mkt-ctl"><select id="mkt-sym"></select><span id="mkt-tf"></span></div>
+<div id="mkt-body"></div></div>
+<div id="sheet"><div class="box">
+<label>Server address (blank = this site)</label><input id="srv" placeholder="https://your-server" autocapitalize="off" autocomplete="off">
+<label>Access token</label><input id="tok" type="password" placeholder="printed by the server" autocapitalize="off" autocomplete="off">
+<label>Anthropic API key (optional, stays on this phone)</label><input id="key" type="password" placeholder="sk-ant-... for AI answers without a server" autocapitalize="off" autocomplete="off">
+<div style="display:flex;gap:8px"><button id="save" style="flex:1;padding:12px">Save &amp; connect</button><button id="close" style="padding:12px">Close</button></div>
+<div id="stmsg" style="font-size:12px;color:var(--dim)"></div></div></div>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+let W, H, DPR;
+function resize(){ DPR = Math.min(devicePixelRatio||1, 2); W = innerWidth; H = innerHeight; cv.width = W*DPR; cv.height = H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize', resize); resize();
+
+// ---- particles on a sphere (fibonacci) + nearest-neighbour links ----
+const N = 650, P = [], L = [];
+for (let i = 0; i < N; i++){
+  const y = 1 - 2*(i+.5)/N, r = Math.sqrt(1-y*y), a = i*2.399963;
+  P.push({x:r*Math.cos(a), y, z:r*Math.sin(a), ph:Math.random()*6.28, sp:.5+Math.random()});
+}
+for (let i = 0; i < N; i++){
+  const d = [];
+  for (let j = 0; j < N; j++) if (i!==j){ const dx=P[i].x-P[j].x, dy=P[i].y-P[j].y, dz=P[i].z-P[j].z; d.push([dx*dx+dy*dy+dz*dz, j]); }
+  d.sort((a,b)=>a[0]-b[0]);
+  for (let k = 0; k < 2; k++) if (i < d[k][1]) L.push([i, d[k][1]]);
+}
+for (let i = 0; i < 160; i++) L.push([Math.random()*N|0, Math.random()*N|0]); // chaotic long links
+
+// ---- state machine: each state tunes the orb ----
+const STATES = {
+  idle:      {spin:.15, disp:.06, jit:.02, size:1.00, link:.18, hue:200, label:'idle'},
+  listening: {spin:.30, disp:.20, jit:.10, size:1.10, link:.30, hue:185, label:'listening'},
+  thinking:  {spin:1.60, disp:.12, jit:.05, size:.78, link:.55, hue:215, label:'thinking'},
+  speaking:  {spin:.35, disp:.16, jit:.08, size:1.05, link:.40, hue:195, label:'speaking'}
+};
+let state = 'idle', cur = {...STATES.idle}, amp = 0, ampTarget = 0, rot = 0, t = 0, burst = 0;
+function setState(s){ state = s; $('status').textContent = STATES[s].label; }
+
+const proj = new Float32Array(N*4);
+function frame(now){
+  const dt = Math.min(.05, (now - (frame.last||now))/1000); frame.last = now; t += dt;
+  const T = STATES[state];
+  for (const k in T) if (typeof T[k]==='number') cur[k] += (T[k]-cur[k])*Math.min(1, dt*3);
+  amp += (ampTarget-amp)*Math.min(1, dt*12); burst *= Math.pow(.02, dt);
+  rot += dt*cur.spin;
+
+  ctx.clearRect(0,0,W,H);
+  const R = Math.min(W,H*.7)*.28*cur.size, cx = W/2, cy = H*.38;
+  const cr = Math.cos(rot), sr = Math.sin(rot), tilt = .35, ct = Math.cos(tilt), st = Math.sin(tilt);
+  for (let i = 0; i < N; i++){
+    const p = P[i];
+    const wob = Math.sin(t*p.sp*2 + p.ph + p.y*4)*cur.disp + Math.sin(t*3+p.ph)*amp*.25 + burst*Math.sin(p.ph*3)*.3;
+    const rad = R*(1 + wob + (Math.random()-.5)*cur.jit);
+    let x = p.x*rad, y = p.y*rad, z = p.z*rad;
+    let x1 = x*cr + z*sr, z1 = -x*sr + z*cr;
+    let y1 = y*ct - z1*st, z2 = y*st + z1*ct;
+    const f = 600/(600 - z2);
+    proj[i*4] = cx + x1*f; proj[i*4+1] = cy + y1*f; proj[i*4+2] = z2/R; proj[i*4+3] = f;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineWidth = 1;
+  for (const [a,b] of L){
+    const za = proj[a*4+2], zb = proj[b*4+2];
+    const al = cur.link*(.35 + .65*((za+zb)/4 + .5));
+    ctx.strokeStyle = `hsla(${cur.hue},90%,70%,${Math.max(0,al)})`;
+    ctx.beginPath(); ctx.moveTo(proj[a*4], proj[a*4+1]); ctx.lineTo(proj[b*4], proj[b*4+1]); ctx.stroke();
+  }
+  for (let i = 0; i < N; i++){
+    const z = proj[i*4+2], s = (1.1 + z*.8 + amp*1.2)*proj[i*4+3]*.9;
+    ctx.fillStyle = `hsla(${cur.hue},95%,${70+z*15}%,${.45+.4*(z*.5+.5)})`;
+    ctx.fillRect(proj[i*4]-s/2, proj[i*4+1]-s/2, s, s);
+  }
+  // soft core glow
+  const g = ctx.createRadialGradient(cx,cy,0,cx,cy,R*1.3);
+  g.addColorStop(0, `hsla(${cur.hue},100%,60%,${.10+amp*.25+burst*.2})`); g.addColorStop(1,'transparent');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation = 'source-over';
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---- Jarvis "brain": simple local rules (swap ask() for an LLM call if you want) ----
+const rules = [
+  [/\b(hi|hello|hey)\b/, () => 'Good to see you, sir. All systems are online.'],
+  [/\btime\b/, () => 'It is ' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + '.'],
+  [/\b(date|day|today)\b/, () => 'Today is ' + new Date().toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'}) + '.'],
+  [/\b(who|what) are you\b|your name/, () => 'I am scORPio zilat, your Jarvis-style AI trading assistant.'],
+  [/\bweather\b/, () => 'I have no live weather feed in this build, but the orb says it looks stormy.'],
+  [/\bjoke\b/, () => 'I would tell you a UDP joke, but you might not get it.'],
+  [/\b(code|codebase|build|made)\b/, () => 'Scanning my own source now. Particles, a little trigonometry, and a lot of style.'],
+  [/\b(thank|thanks)\b/, () => 'Always a pleasure, sir.'],
+  [/\b(\d+)\s*([+\-*x\/])\s*(\d+)\b/, m => { const a=+m[1], b=+m[3], o=m[2]; const r = o=='+'?a+b:o=='-'?a-b:o=='/'?a/b:a*b; return `That comes to ${+r.toFixed(4)}.`; }]
+];
+const FOREX_KB = [
+  [/\bgold\b|xauusd|xau.?usd/, "Gold, XAUUSD, is priced in dollars per ounce. It moves in much bigger swings than a currency pair and the spread is wider, so I assume a higher cost and size the position by dollars per ounce. On MetaTrader 5 one standard lot is 100 ounces. I can scan and trade it when you ask, for example scan XAUUSD, and I backtest it like any other pair before proposing a trade. Gold is not in my default scan unless you set JARVIS_INCLUDE_GOLD to 1. Expect larger losses per move, so keep your risk low."],
+  [/4 ?h(our)? range|four.?hour range|first 4 ?h(our)? candle|failed breakout/, "The four hour range strategy: on the four-hour chart, wait for the first New York candle of the day to close, and mark its high and low. Then on the five-minute chart, wait for a candle to close outside the range, and the very next candle to close back inside. If it broke above and came back, go short. If it broke below and came back, go long. Put the stop beyond the extreme of the failed breakout, and take profit at the opposite side of the range, or at one to two risk to reward. Ask me to scan after the first four-hour candle closes and I will test it before proposing a trade."],
+  [/cr model|9 ?am|8 ?am (candle|high|low|range)|ifvg|inverse fair value/, "The nine A M C R model: mark the high and low of the eight A M one-hour candle in New York time. If the nine o'clock candle trades into the high, bias is short toward the low. If it trades into the low, bias is long toward the high. Then on the one-minute chart, wait for an inverse fair value gap and an order block while price taps that level, enter on confirmation, put the stop beyond the swing, and target the other side of the eight A M range."],
+  [/multi.?time.?frame|higher time.?frame|top.?down/, "Top-down analysis: mark the trend and key levels on a higher timeframe like the daily or four-hour, refine your zone on the one-hour, then time entries on the fifteen-minute or five-minute. Only trade in the direction of the higher timeframe bias."],
+  [/\bpips?\b|\blot size|\blots?\b|pip value/, "A pip is the fourth decimal place on most pairs, and the second on yen pairs. A standard lot is 100,000 units, worth about ten dollars per pip on dollar-quoted pairs, a mini lot is a tenth of that, and a micro lot a hundredth."],
+  [/leverage|margin/, "Leverage lets you control a large position with small capital, for example one to fifty. Margin is the deposit your broker holds. High leverage magnifies losses as much as gains, so most professionals keep effective leverage low and risk a fixed percent per trade."],
+  [/position siz|how much (to )?risk|risk management|risk per trade|money management/, "Risk one to two percent of your account per trade. Position size equals account risk in dollars divided by stop distance in pips times pip value. Aim for at least one to two reward-to-risk, and cap your daily loss so one bad day cannot wreck you."],
+  [/risk.?reward|reward.?to.?risk|\brr\b|win rate/, "Expectancy equals win rate times average win minus loss rate times average loss. With one to two risk-reward you only need to win about thirty-four percent of trades to break even, before costs. Win rate alone means nothing without the reward-to-risk ratio."],
+  [/stop.?loss|\bsl\b|take profit|trailing/, "Place your stop where your idea is proven wrong, such as beyond a swing high or low or a multiple of ATR, not at a random pip count. Take profit at the next structure level or a fixed multiple of risk, and trail stops behind swing points or the ATR once price moves in your favor."],
+  [/support|resistance|supply.?(and)?.?demand|demand zone|supply zone/, "Support and resistance are price areas where buyers or sellers repeatedly stepped in. Treat them as zones, not exact lines. A level that breaks often flips role, so old resistance becomes new support. Supply and demand zones mark the origin of strong impulsive moves."],
+  [/trend ?line|channel/, "Draw a trendline through at least two swing lows in an uptrend or two swing highs in a downtrend, and it gains weight with a third touch. A break with a retest often signals a change of trend, and parallel channels give you buy-the-dip and sell-the-rally zones."],
+  [/candle|pin bar|engulf|doji|hammer|shooting star|price action|inside bar/, "Key price action signals: pin bars, which show rejection with a long wick, engulfing candles, which show momentum shifts, doji for indecision, and inside bars for compression before a breakout. They matter most at key levels, with the trend, and on higher timeframes."],
+  [/golden cross|death cross|moving average|\bsma\b|\bema\b|\bma\b/, "Moving averages smooth price and define trend. The fifty and two-hundred averages are popular, a golden cross is the fifty crossing above the two hundred, and a death cross is the reverse. EMAs react faster than SMAs. They lag, so they work best in trends and badly in ranges."],
+  [/\brsi\b|relative strength/, "RSI is a momentum oscillator from zero to one hundred, using fourteen periods by default. Above seventy is overbought and below thirty is oversold, but in strong trends it can stay extreme for a long time. Divergence between RSI and price is a more useful warning than the levels alone."],
+  [/macd/, "MACD is the twelve-period EMA minus the twenty-six-period EMA, with a nine-period signal line and a histogram. A signal line cross or zero-line cross shows momentum shifts, and divergence against price warns of exhaustion. It lags, so use it with structure."],
+  [/bollinger|bands/, "Bollinger Bands are a twenty-period average with bands two standard deviations away. A squeeze signals low volatility before expansion, and walking the band shows strong trend. In ranges, touches of the band can mean revert to the mean."],
+  [/stochastic/, "The stochastic oscillator compares the close to the recent high-low range. Readings above eighty are overbought and below twenty are oversold. It works best in ranging markets, and crosses are stronger when they occur at key support or resistance."],
+  [/\batr\b|average true range|volatility/, "ATR measures average price range over fourteen periods. Use it to set stops, for example one and a half to two times ATR from entry, to size positions, and to see whether the market is quiet or expanding."],
+  [/fib|retracement|golden ratio|extension/, "Fibonacci retracements map likely pullback depths in a trend, most watched at thirty-eight, fifty and sixty-two percent, with the sixty-one point eight percent golden ratio. Extensions at one-twenty-seven and one-sixty-one are used for targets. They work best when they line up with other structure."],
+  [/ichimoku|cloud|kumo/, "Ichimoku shows trend, momentum and support all at once. Price above the cloud is bullish and below is bearish, a thick cloud means strong support or resistance, and the Tenkan crossing the Kijun gives timing signals. The lagging span confirms the trend."],
+  [/\badx\b|trend strength|directional/, "ADX measures trend strength, not direction. Below twenty usually means a range, above twenty-five suggests a trend. Use it to choose strategy: trend following when high, mean reversion when low."],
+  [/pivot/, "Pivot points are calculated from the prior period's high, low and close, giving a central pivot with support and resistance levels. Intraday traders watch them as reaction zones, especially on the London and New York sessions."],
+  [/diverg/, "Divergence is when price makes a new high or low but an oscillator like RSI or MACD does not. Regular divergence warns of a possible reversal, hidden divergence suggests trend continuation. Never trade it alone; wait for structure to confirm."],
+  [/break.?out|false break|fakeout|retest/, "Breakout trading enters when price closes beyond a key level on strong momentum or volume. Many breaks fail, so traders wait for a candle close and a retest of the broken level. A failed breakout that snaps back is itself a strong reversal signal."],
+  [/trend.?follow|trend trading|with the trend|higher highs|market structure|\bbos\b|choch|break of structure/, "An uptrend is a series of higher highs and higher lows, and a downtrend is the opposite. Trend followers buy pullbacks to support, moving averages or Fibonacci levels. A break of structure confirms the trend continues, and a change of character warns it may reverse."],
+  [/range|mean.?reversion|sideways|consolidat/, "In a range, buy near support and sell near resistance, with stops just outside the range. Oscillators like RSI and stochastic work better there. Always expect an eventual breakout, so reduce size near the edges."],
+  [/scalp|day trad|swing|position trad|trading style/, "Scalping holds for seconds to minutes and needs tight spreads and discipline. Day trading closes by day's end. Swing trading holds days to weeks and suits people with jobs. Position trading holds weeks to months and follows macro trends. Pick the style that fits your schedule and temperament."],
+  [/carry trade|interest rate|central bank|rate differential|swap/, "A carry trade buys a high-yield currency against a low-yield one to earn the interest difference. It works while risk appetite is calm, and unwinds violently in risk-off panics. Central bank rate expectations are the biggest long-term driver of currencies."],
+  [/news|nfp|non.?farm|cpi|inflation|fomc|fed\b|ecb|boe|boj|fundamental/, "Big movers are central bank decisions like the Fed, ECB, BoE and BoJ, non-farm payrolls, CPI inflation, GDP and employment data. Spreads widen and price whipsaws around releases, so many traders stand aside or wait for the first reaction to settle."],
+  [/session|london|new york|tokyo|asian|overlap|best time/, "The Asian session is quieter and often ranges, London brings the highest liquidity and real trends, and New York adds volatility, especially during the London overlap from about eight to noon Eastern. The overlap is usually the best time to trade."],
+  [/major|pairs|eurusd|gbpusd|usdjpy|audusd|usdchf|usdcad|nzdusd|cross pair|exotic/, "The majors are EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD and NZDUSD, with the tightest spreads. Crosses like EURJPY skip the dollar, and exotics pair a major with an emerging currency and cost more to trade. GBP pairs are volatile, JPY pairs are often risk-sentiment driven."],
+  [/correlat|dxy|dollar index|safe haven/, "Many pairs move together: EURUSD and GBPUSD are positively correlated, EURUSD and USDCHF negatively. The dollar index DXY tracks dollar strength against a basket. Do not stack several trades that are really the same bet on the dollar."],
+  [/smart money|ict|order block|liquidity|fair value gap|\bfvg\b|stop hunt|inducement/, "Smart money concepts assume large players hunt liquidity, meaning stops resting above highs and below lows, before reversing. Traders look for a liquidity sweep, a change of character, then an entry at an order block or fair value gap. It is popular but subjective, so backtest it before trusting it."],
+  [/psycholog|emotion|discipline|revenge|fomo|overtrad|fear|greed/, "Most failure comes from psychology, not strategy: revenge trading, FOMO, moving stops, overtrading and oversizing. Have written rules, a fixed risk per trade, a daily loss limit, and take breaks after losses. Consistency beats brilliance."],
+  [/backtest|journal|demo|paper trad|forward test/, "Backtest your strategy over at least a hundred trades across different market conditions, then forward test on a demo account before going live. Keep a journal with the setup, entry, exit, reason, screenshot and emotion. Review it weekly and fix the leaks."],
+  [/spread|commission|slippage|broker|ecn|market maker/, "Costs are spread, commission and slippage. Choose a regulated broker with tight spreads, and remember scalping strategies are the most cost-sensitive. Avoid trading right at news or rollover when spreads blow out."],
+  [/strateg|how (do i|to) trade forex|best (indicator|strategy)|setup|system/, "A solid beginner framework: identify the daily trend, wait for a pullback to a support zone or key moving average, enter on a confirming candle such as an engulfing or pin bar, put the stop beyond structure, and target at least one to two. Add one or two indicators at most, and always trade with a strict risk limit."],
+  [/forex|fx\b|currency (trading|market)|what is trading|learn trading/, "Forex is the global currency market, trading about seven trillion dollars a day, open twenty-four hours from Monday to Friday. You buy one currency while selling another, so every trade is a pair. Profit comes from price moves, and risk control matters more than any indicator."],
+  [/(current|today|right now|latest|live|now).*(trend|price|market|forecast|rate|signal)|will .* (go up|go down|rise|fall)|buy or sell|prediction|predict/, "I have no live price feed here, and nobody can predict the market reliably. What I can do is give you the method: check the daily trend structure, key levels, the upcoming news calendar, and whether price is above or below the fifty and two-hundred averages, and I will help you interpret what you see."],
+];
+function ask(q){
+  const s = q.toLowerCase();
+  const mm = demoMemory(q); if (mm) return mm;
+  if (/^\s*(please |can you |could you )?(scan|analy[sz]e)\b|autopilot|start work|get to work|kill switch|watch the market/.test(s))
+    return 'Scanning and trading need my trading server, and I am in demo mode with built-in answers only. Tap the gear, add your server link, and I can scan live prices, gold included.';
+  for (const [re, ans] of FOREX_KB) if (re.test(s)) return ans + ' This is education, not financial advice.';
+  for (const [re, fn] of rules){ const m = s.match(re); if (m) return fn(m); }
+  return 'I do not have a built-in answer for that. Connect my server in Settings, with an Anthropic key, and I can answer anything and follow the whole conversation.';
+}
+
+// ---- interaction flow: listening -> thinking -> speaking -> idle ----
+let busy = false;
+const voices = () => speechSynthesis.getVoices();
+function speak(text){
+  text = personalize(text);
+  return new Promise(res => {
+    $('reply').textContent = text; setState('speaking');
+    if (!('speechSynthesis' in window)){ fake(text.length*55, res); return; }
+    const u = new SpeechSynthesisUtterance(text); u.rate = 1.0; u.pitch = 1.05;
+    const v = pickVoice();                                   // female voices only
+    if (v) u.voice = v;
+    else { u.pitch = 1.3; if (!speak.warned) { speak.warned = true; $('status').textContent = 'no female voice found on this device'; } }
+    let started = false;
+    u.onstart = () => { started = true; };
+    setTimeout(() => { if (!started){ speechSynthesis.cancel(); $('status').textContent = 'speaking (no audio: voice blocked)'; fake(text.length*55, res); } }, 2500);
+    u.onboundary = () => { burst = 1; ampTarget = .6 + Math.random()*.4; };
+    u.onend = u.onerror = () => res();
+    // pulse amplitude between words
+    const iv = setInterval(() => { ampTarget = speechSynthesis.speaking ? .25 + Math.random()*.5 : 0; }, 90);
+    u.onend = u.onerror = () => { clearInterval(iv); res(); };
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  });
+}
+function fake(ms, done){ const iv = setInterval(() => ampTarget = .25 + Math.random()*.5, 90); setTimeout(() => { clearInterval(iv); done(); }, ms); }
+
+function primeVoice(){
+  try{ if('speechSynthesis' in window){ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); speechSynthesis.resume(); } }catch(e){}
+}
+if('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+async function handle(q){
+  q = q.trim(); if (!q || busy) return; primeVoice(); busy = true;
+  $('q').value = ''; $('reply').textContent = '“' + q + '”';
+  burst = 1; setState('thinking'); ampTarget = 0;
+  if (!cfg.token) await new Promise(r => setTimeout(r, 900 + Math.random()*700));
+  const ans = await answer(q); if (!metaTurn){ lastQ = q; lastReply = ans; logTurn(q, ans); } metaTurn = false; await speak(ans);
+  ampTarget = 0; setState('idle'); busy = false;
+}
+$('go').onclick = () => handle($('q').value);
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') handle($('q').value); });
+$('q').addEventListener('focus', () => { if (!busy) setState('listening'); });
+$('q').addEventListener('blur', () => { if (!busy) setState('idle'); });
+$('q').addEventListener('input', () => { burst = .5; ampTarget = .5; setTimeout(() => ampTarget = 0, 120); });
+
+// voice input (Chrome/Edge/Safari)
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+$('mic').onclick = () => {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) return nativeListen();
+  if (!SR) { $('reply').textContent = 'Voice input is not supported in this browser — type instead.'; return; }
+  if (busy) return;
+  const r = new SR(); r.lang = 'en-US'; r.interimResults = true;
+  setState('listening'); $('mic').classList.add('on');
+  r.onresult = e => { const tx = [...e.results].map(x => x[0].transcript).join(''); $('q').value = tx; ampTarget = .6; if (e.results[0].isFinal){ $('mic').classList.remove('on'); handle(tx); } };
+  r.onerror = e => {
+    const m = {'not-allowed':'Microphone is blocked here. Open the page in its own browser tab (not inside the chat) and allow the mic. On your own server the mic needs https (see the README).',
+      'service-not-allowed':'Microphone is blocked here. Open the page in its own browser tab and allow the mic. On your own server the mic needs https (see the README).',
+      'no-speech':'I did not hear anything. Try again, a little closer to the mic.',
+      'audio-capture':'No microphone found.','network':'Speech service unreachable (needs internet).'};
+    $('reply').textContent = m[e.error] || ('Mic error: ' + e.error);
+  };
+  r.onend = () => { $('mic').classList.remove('on'); ampTarget = 0; if (!busy) setState('idle'); };
+  try { r.start(); } catch(e){ $('reply').textContent = 'Could not start the mic: ' + e.message; }
+};
+
+// ---- phone-app layer: server connection, trade card, market watch, PWA ----
+const cfg = {srv:'', token:'', apiKey:''};
+try { Object.assign(cfg, JSON.parse(localStorage.getItem('sz_cfg') || '{}')); } catch(e){}
+(function(){                                              // phone link: https://.../#t=TOKEN (&s=server)
+  const t = location.hash.match(/[#&]t=([^&]+)/), s = location.hash.match(/[#&]s=([^&]+)/);
+  if (t){ cfg.token = decodeURIComponent(t[1]); if (s) cfg.srv = decodeURIComponent(s[1]);
+    try { localStorage.setItem('sz_cfg', JSON.stringify(cfg)); } catch(e){}
+    try { history.replaceState(null, '', location.pathname + location.search); } catch(e){} }
+})();
+const base = () => (cfg.srv || '').replace(/\/+$/, '');
+async function api(path, body){
+  if (/claude/i.test(location.hostname) && !cfg.srv) throw new Error('this preview inside Claude cannot reach your server. Open the app link your server printed instead');
+  let r;
+  try { r = await fetch(base() + path, {method: body ? 'POST' : 'GET', headers: {'X-Token': cfg.token, 'Content-Type': 'application/json'}, body: body ? JSON.stringify(body) : undefined}); }
+  catch(e){ throw new Error('cannot reach ' + (cfg.srv || 'this site') + ' (is your server running, and is the address the https app link it printed?)'); }
+  if (r.status === 401) throw new Error('wrong access token');
+  if (r.status === 429) throw new Error('too many wrong tokens, wait a minute');
+  if (r.status === 404 || r.status === 405 || r.status === 501) throw new Error('error ' + r.status + ': this address is not my server (it looks like a plain website, and websites reject my requests). Open the app link your server printed, or put that link in Settings under Server address');
+  if (!r.ok) throw new Error('server error ' + r.status);
+  return r.json();
+}
+function showTrade(on){ $('trade').style.display = on ? 'flex' : 'none'; }
+async function answer(q){
+  const ui = uiCommand(q); if (ui){ showTrade(false); return ui; }
+  if (!cfg.token){ showTrade(false); return await demoAnswer(q); }
+  try { const r = await api('/api/chat', {text: q}); const y = $('yes'); y.textContent = r.confirm ? '✓ ' + r.confirm.toUpperCase() : '✓ YES, EXECUTE'; y.dataset.say = r.confirm || 'yes'; showTrade(!!r.pending || !!r.confirm); refresh(); return r.reply; }
+  catch(e){ showTrade(false); return 'I could not reach my server: ' + e.message + '. Check Settings.'; }
+}
+async function refresh(){
+  const p = $('pill'), m = $('stmsg');
+  if (!cfg.token){ p.textContent = cfg.apiKey ? 'AI' : 'demo'; p.className = 'pill'; $('eye').classList.remove('on'); m.textContent = cfg.apiKey ? 'AI mode: she answers anything with your Anthropic key and remembers on this phone. Add your server and token for live prices and trading.' : 'Demo mode: built-in forex answers only. Add an Anthropic key for AI answers, or your server and token for AI answers and trading.'; return; }
+  try {
+    const s = await api('/api/status');
+    p.textContent = s.configured ? ((s.mode === 'practice' ? 'practice' : 'LIVE') + (s.autopilot ? ' · auto' : '')) : 'no broker';
+    p.className = 'pill' + (s.configured ? (s.mode === 'practice' ? ' prac' : ' live') : '');
+    $('eye').classList.toggle('on', !!s.watching); $('bot').classList.toggle('on', !!s.autopilot);
+    if (s.name){ const mm = memLoad(); mm.name = s.name; memSave(mm); }          // the server's name for you, so the welcome matches
+    m.textContent = 'Connected' + (s.configured ? ' · ' + s.mode + ' account' : ' · broker keys not set on the server');
+  } catch(e){ p.textContent = 'offline'; p.className = 'pill'; m.textContent = 'Cannot connect: ' + e.message; }
+}
+$('yes').onclick = () => handle($('yes').dataset.say || 'yes');
+$('bot').onclick = () => { if (!cfg.token){ $('reply').textContent = 'Connect to your server in Settings first.'; return; } handle($('bot').classList.contains('on') ? 'stop autopilot' : 'autopilot on'); };
+$('no').onclick = () => handle('no');
+$('gear').onclick = () => { $('srv').value = cfg.srv; $('tok').value = cfg.token; $('key').value = cfg.apiKey || ''; $('sheet').style.display = 'flex'; refresh(); };
+$('close').onclick = () => { $('sheet').style.display = 'none'; };
+$('save').onclick = async () => {
+  let sv = $('srv').value.trim(); const lk = sv.match(/#t=([^&]+)/);            // accepts the full app link
+  if (lk){ $('tok').value = decodeURIComponent(lk[1]); sv = sv.replace(/#.*$/, ''); $('srv').value = sv; }
+  cfg.srv = sv; cfg.token = $('tok').value.trim(); cfg.apiKey = $('key').value.trim();
+  try { localStorage.setItem('sz_cfg', JSON.stringify(cfg)); } catch(e){}
+  $('stmsg').textContent = 'Connecting…'; await refresh();
+};
+$('eye').onclick = async () => {
+  if (!cfg.token){ $('reply').textContent = 'Connect to your server in Settings first.'; return; }
+  try { const on = !$('eye').classList.contains('on'); await api('/api/watch', {on}); await refresh();
+    $('reply').textContent = on ? 'Manager sent to work. She reports to me, and I will tell you.' : 'Manager stopped.';
+  } catch(e){ $('reply').textContent = e.message; }
+};
+setInterval(async () => {                                   // announcements from the market watch
+  if (!cfg.token || busy) return;
+  try {
+    const r = await api('/api/poll');
+    for (const ev of r.events){ busy = true; showTrade(!!ev.pending); await speak(ev.reply); ampTarget = 0; setState('idle'); busy = false; refresh(); }
+  } catch(e){}
+}, 6000);
+setInterval(refresh, 30000); refresh();
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+// ---- native Android/iOS shell: voice input through the Capacitor speech plugin ----
+async function nativeListen(){
+  const P = window.Capacitor.Plugins.SpeechRecognition;
+  if (busy) return;
+  try {
+    const perm = await P.requestPermissions();
+    if (perm.speechRecognition !== 'granted'){ $('reply').textContent = 'Microphone permission was denied. Enable it in your phone settings.'; return; }
+    await P.removeAllListeners();
+    let last = '', done = false;
+    const finish = () => { if (done) return; done = true; $('mic').classList.remove('on'); ampTarget = 0; if (!busy) setState('idle'); if (last) handle(last); };
+    await P.addListener('partialResults', d => { if (d.matches && d.matches[0]){ last = d.matches[0]; $('q').value = last; } });
+    await P.addListener('listeningState', s => { if (s.status === 'stopped') finish(); });
+    setState('listening'); $('mic').classList.add('on'); ampTarget = .6;
+    await P.start({language: 'en-US', maxResults: 1, partialResults: true, popup: false});
+    setTimeout(() => { try { P.stop(); } catch(e){} setTimeout(finish, 600); }, 9000);
+  } catch(e){ $('mic').classList.remove('on'); $('reply').textContent = 'Voice input failed: ' + (e.message || e); }
+}
+
+// ---- female voice only: never a male voice ----
+const FEMALE = /female|woman|zira|hazel|susan|samantha|karen|moira|tessa|fiona|victoria|allison|\bava\b|serena|\bkate\b|jenny|aria|sonia|libby|emma|amy|joanna|salli|kimberly|\bivy\b|nicole|stephanie|catherine|heather|\bsara\b|veena|lekha|google us english/i;
+const MALE = /\bmale\b|david|\bmark\b|george|daniel|james|\bfred\b|\btom\b|arthur|rishi|\bguy\b|ryan|oliver|thomas|gordon|\balex\b|rocko|eddy|reed|grandpa|sandy/i;
+function pickVoice(){
+  const vs = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang) && FEMALE.test(v.name) && !MALE.test(v.name));
+  return vs.find(v => /en-GB/i.test(v.lang)) || vs.find(v => /en-US/i.test(v.lang)) || vs[0] || null;
+}
+// ---- demo-mode memory (kept in this browser only; your server keeps the real, permanent memory) ----
+const OWNER = 'Monarch', CREATOR = 'Monarch Manaois';   // who she is built for and by (on the server: JARVIS_OWNER_NAME / JARVIS_CREATOR)
+function memLoad(){ let m = {}; try { m = JSON.parse(localStorage.getItem('sz_demo_mem') || '{}'); } catch(e){} m.name = m.name || OWNER; m.address = m.address || m.name; return m; }
+// ---- welcome: she greets you by name every time the app opens ----
+function welcomeText(){
+  const h = new Date().getHours(), part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  return part + ', ' + memLoad().name + '. Welcome back. scORPio zilat is online and ready.';
+}
+let welcomed = false, queued = false;
+function welcome(){
+  const t = welcomeText(); $('reply').textContent = t;
+  const say = () => {
+    if (welcomed || queued || !('speechSynthesis' in window)) return;
+    if (!speechSynthesis.getVoices().length){ speechSynthesis.addEventListener('voiceschanged', say, {once: true}); return; }
+    const u = new SpeechSynthesisUtterance(t), v = pickVoice();
+    if (v) u.voice = v; u.pitch = v ? 1.05 : 1.3;
+    u.onstart = () => { welcomed = true; ampTarget = .5; setState('speaking'); };
+    u.onend = u.onerror = () => { ampTarget = 0; if (!busy) setState('idle'); };
+    queued = true;
+    try { speechSynthesis.speak(u); } catch(e){}
+  };
+  say();                                                  // speaks straight away where the browser allows it
+  const once = () => { if (!welcomed){ try { speechSynthesis.cancel(); } catch(e){} queued = false; say(); } };   // otherwise on your first tap
+  addEventListener('pointerdown', once, {once: true}); addEventListener('keydown', once, {once: true});
+}
+// ---- Markets: a TradingView-style section that needs no server. Live charts and scanners are TradingView's free widgets. ----
+// She cannot read what is inside them (they are separate pages), so this is for YOU to scan the market; her own scan uses your broker's data on the server.
+const TV = {EURUSD: 'FX:EURUSD', GBPUSD: 'FX:GBPUSD', USDJPY: 'FX:USDJPY', AUDUSD: 'FX:AUDUSD', NZDUSD: 'FX:NZDUSD', USDCAD: 'FX:USDCAD', USDCHF: 'FX:USDCHF', XAUUSD: 'OANDA:XAUUSD'};
+const TFS = [['5', '5m', '5m'], ['15', '15m', '15m'], ['60', '1h', '1h'], ['240', '4h', '4h'], ['D', '1D', '1D']];   // chart code, label, signals code
+const mkt = {tab: 'chart', sym: 'EURUSD', tf: '60'};
+function symFrom(q){ const s = q.toLowerCase().replace(/[^a-z]/g, ''); for (const k in TV) if (s.includes(k.toLowerCase())) return k; return /\bgold\b/i.test(q) ? 'XAUUSD' : null; }
+function tvLink(){ return 'https://www.tradingview.com/chart/?symbol=' + encodeURIComponent(TV[mkt.sym]) + '&interval=' + mkt.tf; }
+function tvConfig(tab){
+  const sym = TV[mkt.sym], tf = TFS.find(t => t[0] === mkt.tf) || TFS[2];
+  if (tab === 'chart') return ['embed-widget-advanced-chart.js', {autosize: true, symbol: sym, interval: mkt.tf, timezone: 'America/New_York', theme: 'dark', style: '1', locale: 'en', allow_symbol_change: true, hide_side_toolbar: true, save_image: false, calendar: false, support_host: 'https://www.tradingview.com'}];
+  if (tab === 'signals') return ['embed-widget-technical-analysis.js', {interval: tf[2], width: '100%', height: '100%', isTransparent: true, symbol: sym, showIntervalTabs: true, displayMode: 'single', locale: 'en', colorTheme: 'dark'}];
+  if (tab === 'scanner') return ['embed-widget-screener.js', {width: '100%', height: '100%', defaultColumn: 'overview', defaultScreen: 'general', market: 'forex', showToolbar: true, colorTheme: 'dark', locale: 'en', isTransparent: true}];
+  if (tab === 'heatmap') return ['embed-widget-forex-heat-map.js', {width: '100%', height: '100%', currencies: ['EUR', 'USD', 'JPY', 'GBP', 'CHF', 'AUD', 'CAD', 'NZD'], isTransparent: true, colorTheme: 'dark', locale: 'en'}];
+  return ['embed-widget-events.js', {colorTheme: 'dark', isTransparent: true, locale: 'en', width: '100%', height: '100%', importanceFilter: '-1,0,1', countryFilter: 'us,eu,gb,jp,ca,ch,au,nz'}];
+}
+function tvWidget(file, conf){
+  const body = $('mkt-body'); body.innerHTML = '';
+  const box = document.createElement('div'); box.className = 'tradingview-widget-container'; box.style.cssText = 'height:100%;width:100%';
+  const inner = document.createElement('div'); inner.className = 'tradingview-widget-container__widget'; inner.style.cssText = 'height:calc(100% - 22px);width:100%';
+  const copy = document.createElement('div'); copy.className = 'tradingview-widget-copyright'; copy.style.cssText = 'font-size:11px;padding:3px 6px;text-align:center';
+  copy.innerHTML = '<a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">Track all markets on TradingView</a>';
+  const s = document.createElement('script'); s.src = 'https://s3.tradingview.com/external-embedding/' + file; s.async = true; s.text = JSON.stringify(conf);
+  const fail = () => { if (!document.body.contains(box)) return; body.innerHTML = '<div class="msg">TradingView could not load here. That happens in the preview inside Claude, which blocks outside content, or when you are offline. Open the live market directly:<br><br><a href="' + tvLink() + '" target="_blank" rel="noopener">Open ' + mkt.sym + ' on TradingView</a></div>'; };
+  s.onerror = fail; box.append(inner, copy, s); body.appendChild(box);
+  setTimeout(() => { if (document.body.contains(box) && !box.querySelector('iframe')) fail(); }, 8000);
+}
+function renderMarkets(){
+  document.querySelectorAll('#mkt-tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === mkt.tab));
+  $('mkt-ctl').style.display = (mkt.tab === 'chart' || mkt.tab === 'signals') ? 'flex' : 'none';
+  $('mkt-sym').value = mkt.sym;
+  document.querySelectorAll('#mkt-tf button').forEach(b => b.classList.toggle('on', b.dataset.tf === mkt.tf));
+  const c = tvConfig(mkt.tab); tvWidget(c[0], c[1]);
+}
+function openMarkets(tab){ if (tab) mkt.tab = tab; $('mkt').style.display = 'flex'; renderMarkets(); }
+function closeMarkets(){ $('mkt').style.display = 'none'; $('mkt-body').innerHTML = ''; }
+function uiCommand(q){                                      // voice/typed commands that open the Markets section, with or without a server
+  const s = q.toLowerCase(), sym = symFrom(q), pretty = sym ? sym.slice(0, 3) + ' ' + sym.slice(3) : '';
+  const wants = /\b(show|open|pull up|bring up|display|let me see|take me to)\b/.test(s);
+  if (wants && /\bheat ?map\b/.test(s)){ openMarkets('heatmap'); return 'Here is the currency heat map.'; }
+  if (wants && /\b(calendar|economic news)\b/.test(s)){ openMarkets('calendar'); return 'Here is the economic calendar.'; }
+  if (wants && /\b(scanner|screener)\b/.test(s)){ openMarkets('scanner'); return 'Here is the forex scanner.'; }
+  if (wants && /\b(chart|market|markets|tradingview)\b/.test(s)){ if (sym) mkt.sym = sym; openMarkets('chart'); return sym ? 'Here is the ' + pretty + ' chart.' : 'Here are the live markets.'; }
+  if (!cfg.token && /^\s*(please |can you |could you )?(scan|analy[sz]e)\b/.test(s)){
+    if (sym){ mkt.sym = sym; openMarkets('signals'); return 'I cannot run my own scan without my server, so I have opened the live signals for ' + pretty + '. They are TradingView\'s, not my analysis.'; }
+    openMarkets('scanner'); return 'I cannot run my own scan without my server, so I have opened the live forex scanner for you to look at the market yourself. It is TradingView\'s data, and I cannot see inside it.';
+  }
+  return null;
+}
+(function(){
+  const sel = $('mkt-sym'); Object.keys(TV).forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k.slice(0, 3) + '/' + k.slice(3); sel.appendChild(o); });
+  const tf = $('mkt-tf'); TFS.forEach(t => { const b = document.createElement('button'); b.dataset.tf = t[0]; b.textContent = t[1]; b.onclick = () => { mkt.tf = t[0]; renderMarkets(); }; tf.appendChild(b); });
+  sel.onchange = () => { mkt.sym = sel.value; renderMarkets(); };
+  document.querySelectorAll('#mkt-tabs button').forEach(b => { b.onclick = () => { mkt.tab = b.dataset.t; renderMarkets(); }; });
+  $('mkt-btn').onclick = () => openMarkets(); $('mkt-x').onclick = closeMarkets;
+})();
+setTimeout(welcome, 500);
+function memSave(m){ try { localStorage.setItem('sz_demo_mem', JSON.stringify(m)); } catch(e){} }
+function personalize(t){ const a = memLoad().address || 'boss'; return t.replace(/\bsir\b/gi, w => w[0] === 'S' ? a[0].toUpperCase() + a.slice(1) : a); }
+let lastQ = '', lastReply = '', metaTurn = false;
+// ---- zero-setup AI mode: inside Claude this page can ask Claude, and it keeps the conversation in this browser ----
+function chatLoad(){ try { return JSON.parse(localStorage.getItem('sz_chat') || '[]'); } catch(e){ return []; } }
+function logTurn(q, a){ try { const c = chatLoad(); c.push({q: q, a: a}); localStorage.setItem('sz_chat', JSON.stringify(c.slice(-60))); } catch(e){} }
+(function(){ const c = chatLoad(); if (c.length){ lastQ = c[c.length - 1].q; lastReply = c[c.length - 1].a; } })();
+// AI answers straight from this page with your own Anthropic key (stored only in this browser), so a hosted copy needs no server
+async function directAnswer(q){
+  try {
+    const m = memLoad(), who = m.name || m.address || OWNER;
+    const system = 'You are scORPio zilat, built by ' + CREATOR + ', who is your creator and boss; the user is usually ' + CREATOR + '. You are a Jarvis-style, witty, calm, British-sounding AI assistant who is a woman: always speak and write as a woman, warm and confident, never describe yourself as male. You are an expert forex trading mentor (strategies, indicators, price action, risk management, psychology, central banks and news, gold). Your reply is spoken aloud: one to three short sentences, plain text, no markdown, lists or emojis. Address the user as ' + who + '. Never assume the user\'s gender. In this mode you have NO live prices and cannot place trades; never invent prices or forecasts, and say so if asked; explain how to analyse instead. Mention only occasionally that this is education, not financial advice.'
+      + (m.facts && m.facts.length ? ' Things you remember about the user: ' + m.facts.join('; ') + '.' : '');
+    const msgs = [];
+    chatLoad().slice(-12).forEach(t => { msgs.push({role: 'user', content: t.q}, {role: 'assistant', content: t.a}); });
+    msgs.push({role: 'user', content: q});
+    const r = await fetch('https://api.anthropic.com/v1/messages', {method: 'POST', headers: {'content-type': 'application/json', 'x-api-key': cfg.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true'}, body: JSON.stringify({model: 'claude-sonnet-5-5', max_tokens: 400, system: system, messages: msgs})});
+    if (r.status === 401) return 'Anthropic rejected that API key. Check it in Settings.';
+    if (!r.ok) return null;
+    const j = await r.json();
+    return ((j.content || []).map(b => b.text || '').join('').trim()) || null;
+  } catch(e){ return null; }
+}
+async function demoAnswer(q){
+  const local = ask(q);
+  if (!/built-in answer for that/.test(local)) return local;          // memory commands, repeat and the built-in lessons stay instant and free
+  if (cfg.apiKey){ const d = await directAnswer(q); if (d) return d; }
+  if (typeof claude === 'undefined') return local;
+  try {
+    const sample = await claude.use('sample');
+    if (!sample) return local;
+    const m = memLoad(), who = m.name || m.address || 'boss';
+    const turns = chatLoad().slice(-12).map(t => 'User: ' + t.q + '\nYou: ' + t.a).join('\n');
+    const prompt = 'You are scORPio zilat, built by ' + CREATOR + ', who is your creator and boss; the user is usually ' + CREATOR + '. You are a Jarvis-style, witty, calm, British-sounding AI assistant who is a woman: always speak and write as a woman, warm and confident, never describe yourself as male. You are an expert forex trading mentor (strategies, indicators, price action, risk management, psychology, central banks and news, gold). '
+      + 'Your reply is spoken aloud: one to three short sentences, plain text, no markdown, lists or emojis. Address the user as ' + who + '. Never assume the user\'s gender. '
+      + 'In this mode you have NO live prices and cannot place trades; never invent prices or forecasts, and say so if asked; explain how to analyse instead. Mention only occasionally that this is education, not financial advice.\n'
+      + (m.facts && m.facts.length ? 'Things you remember about the user: ' + m.facts.join('; ') + '\n' : '')
+      + (turns ? 'Conversation so far:\n' + turns + '\n' : '') + 'User: ' + q + '\nYou:';
+    const r = await sample(prompt, {modelTier: 'quick', cache: false});
+    return (r && r.text ? r.text.trim() : '') || local;
+  } catch(e){ return local; }
+}
+function demoMemory(q){
+  const m = memLoad(); m.facts = m.facts || []; let s;
+  if (/\b(who (built|made|created|programmed|designed|developed|invented|owns?) (you|this)|who is your (creator|maker|builder|developer|owner|boss|father)|who('s| is) your boss|who do you work for)\b/i.test(q)) return 'I was built by ' + CREATOR + ', my boss. When my AI answers are on, I run on Claude, made by Anthropic.';
+  if (/\b(who am i|what(?:'s| is) my (?:full )?name|do you know (?:me|who i am)|do you remember my name)\b/i.test(q)) return m.name === OWNER ? 'You are ' + CREATOR + ', the person who built me, and I am glad to see you.' : 'You are ' + m.name + '.';
+  if (/\b(repeat (that|it|what you said|yourself)|say (that|it) again|what did you (just )?say|come again|pardon|can you repeat|one more time)\b/i.test(q)){ metaTurn = true; return lastReply ? 'Of course. I said: ' + lastReply : 'I have not said anything yet.'; }
+  if (/what (was|is) my (last|previous) (question|message)|what did i (just )?(say|ask)\s*\??\s*$/i.test(q)){ metaTurn = true; return lastQ ? 'You asked: ' + lastQ : 'You have not asked me anything yet.'; }
+  if ((s = q.match(/^\s*(?:and|what about|how about)\s+(.+?)\s*\??\s*$/i))){ for (const [re, ans] of FOREX_KB) if (re.test(s[1].toLowerCase())) return ans + ' This is education, not financial advice.'; }
+  if ((s = q.match(/\b(?:my name is|call me|i am called|i'm called)\s+([A-Za-z][A-Za-z'\-]*)/i))){ const w = s[1][0].toUpperCase() + s[1].slice(1).toLowerCase(); m.name = m.address = w; memSave(m); return 'Lovely to meet you, ' + w + '. I will remember that.'; }
+  if ((s = q.match(/^\s*(?:please\s+)?remember(?:\s+that)?\s+(.+)$/i))){ m.facts.push(s[1]); memSave(m); return 'I will remember that: ' + s[1] + '.'; }
+  if (/what do you (?:remember|know) about me|what do you remember/i.test(q)) return (m.name || m.facts.length) ? 'I remember' + (m.name ? ' that your name is ' + m.name + '.' : ':') + (m.facts.length ? ' ' + m.facts.join('; ') + '.' : '') : 'I do not remember anything about you yet.';
+  if (/forget (everything|all)/i.test(q)){ memSave({}); return 'Done. In demo mode I have forgotten everything. Connect your server for permanent memory.'; }
+  return null;
+}
+</script>
+</body>
+</html>
