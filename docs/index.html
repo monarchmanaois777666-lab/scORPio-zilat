@@ -339,6 +339,15 @@ setInterval(async () => {                                   // announcements fro
 }, 6000);
 setInterval(refresh, 30000); refresh();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+async function checkMemberAccess(){
+  try{
+    const r = await fetch('/api/auth/status', {cache:'no-store'});
+    if (!r.ok){ location.replace('/account'); return; }
+    const s = await r.json();
+    if (!s.active) location.replace('/account');
+  }catch(e){ location.replace('/account'); }
+}
+if (location.protocol.startsWith('http')) setInterval(checkMemberAccess, 60000);
 
 // ---- native Android/iOS shell: voice input through the Capacitor speech plugin ----
 async function nativeListen(){

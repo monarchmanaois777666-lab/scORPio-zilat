@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#090d12">
+<title>Member access | scORPio zilat</title>
+<style>
+:root{color-scheme:dark;--ink:#eef2ed;--muted:#a3b1b4;--line:#34434a;--accent:#b8e47c;--base:#090d12;--panel:#10171c;--error:#ff9d8e}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 20% 10%,#1c2824 0,transparent 46%),linear-gradient(135deg,#090d12,#111923);color:var(--ink);font:14px/1.5 ui-monospace,monospace}.box{width:min(440px,100%);padding:26px 24px;background:var(--panel);border:1px solid var(--line);border-radius:6px}a{color:var(--accent)}.brand{font:700 12px ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}h1{font:500 30px/1.15 Georgia,"Palatino Linotype",serif;margin:22px 0 8px;letter-spacing:0}.sub,.hint{color:var(--muted);font-size:12px}.switch{display:flex;gap:18px;margin:22px 0 14px;border-bottom:1px solid var(--line)}.switch button{border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);padding:0 0 10px;font:inherit;cursor:pointer}.switch button[aria-selected=true]{color:var(--accent);border-color:var(--accent)}label{display:block;margin:15px 0 6px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}input{width:100%;border:1px solid var(--line);border-radius:4px;background:#0a1015;color:var(--ink);padding:12px;font:inherit}input:focus{outline:2px solid var(--accent);outline-offset:1px}button.primary{width:100%;margin-top:18px;border:0;border-radius:4px;background:var(--accent);color:#10170b;padding:13px;font:700 13px ui-monospace,monospace;cursor:pointer}button.primary:disabled{opacity:.55;cursor:wait}button.text{border:0;background:none;padding:10px 0;color:var(--accent);font:inherit;cursor:pointer}.message{min-height:22px;margin-top:14px;color:var(--muted);font-size:12px}.message.error{color:var(--error)}.hidden{display:none!important}.divider{height:1px;background:var(--line);margin:20px 0}.home{display:inline-block;margin-top:20px;font-size:12px}.foot{margin-top:20px;color:var(--muted);font-size:11px}
+</style>
+</head>
+<body><main class="box">
+<a class="brand" href="/">scORPio zilat</a>
+<section id="authPanel">
+<h1 id="title">Member sign in</h1>
+<div class="sub">App access requires owner approval and renews every 30 days.</div>
+<div class="switch" role="tablist"><button id="signinTab" role="tab" aria-selected="true">Sign in</button><button id="registerTab" role="tab" aria-selected="false">Create account</button></div>
+<form id="credentials">
+<label for="email">Email</label><input id="email" type="email" autocomplete="email" maxlength="254" required>
+<label for="password">Login password</label><input id="password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required>
+<div id="passwordHint" class="hint hidden">Use at least 12 characters. This is your account password, not the monthly access code.</div>
+<button id="submit" class="primary" type="submit">Sign in</button>
+</form>
+<div id="approval" class="hidden">
+<div class="divider"></div><h1 id="approvalTitle">Owner approval needed</h1>
+<p id="approvalText" class="sub">Ask the owner for your one-time code, then enter it below.</p>
+<label for="code">One-time app access code</label><input id="code" autocomplete="one-time-code" maxlength="64">
+<button id="redeem" class="primary" type="button">Activate app access</button>
+<button id="request" class="text" type="button">Request a code for the owner</button>
+<button id="logout" class="text" type="button">Sign out</button>
+</div>
+<div id="message" class="message" role="status" aria-live="polite"></div>
+<div class="foot">Your login password is never sent to the owner. Only the one-time approval code is shared.</div>
+</section>
+<a class="home" href="/">Back to scORPio zilat</a>
+</main>
+<script>
+const $=id=>document.getElementById(id);let mode='login';
+function message(text,error=false){$('message').textContent=text;$('message').classList.toggle('error',error)}
+async function api(path,body){const r=await fetch(path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,cache:'no-store'});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.detail||data.message||'Request failed. Try again.');return data}
+function setMode(next){mode=next;$('signinTab').setAttribute('aria-selected',String(mode==='login'));$('registerTab').setAttribute('aria-selected',String(mode==='register'));$('title').textContent=mode==='login'?'Member sign in':'Create member account';$('submit').textContent=mode==='login'?'Sign in':'Create account';$('password').autocomplete=mode==='login'?'current-password':'new-password';$('passwordHint').classList.toggle('hidden',mode!=='register');message('')}
+$('signinTab').onclick=()=>setMode('login');$('registerTab').onclick=()=>setMode('register');
+$('credentials').onsubmit=async e=>{e.preventDefault();$('submit').disabled=true;message('Please wait…');try{const data=await api('/api/auth/'+(mode==='login'?'login':'register'),{email:$('email').value,password:$('password').value});if(data.active){location.assign('/app');return}const status=await api('/api/auth/status');const expired=!!status.expiresAt&&!status.active;showApproval(status.codePending?'A one-time code is pending. Contact the owner to receive it.':expired?'Your monthly access has expired. Request a fresh code and contact the owner.':data.message||'Ask the owner for your one-time access code.',!status.codePending,expired)}catch(err){message(err.message,true)}finally{$('submit').disabled=false}};
+function showApproval(text,canRequest=false,expired=false){$('credentials').classList.add('hidden');document.querySelector('.switch').classList.add('hidden');$('approval').classList.remove('hidden');$('approvalTitle').textContent=expired?'Monthly access expired':'Owner approval needed';$('approvalText').textContent=text;$('request').classList.toggle('hidden',!canRequest)}
+$('redeem').onclick=async()=>{if(!$('code').value.trim()){message('Enter the code from the owner.',true);return}try{await api('/api/auth/redeem',{code:$('code').value.trim()});location.assign('/app')}catch(err){message(err.message,true);try{const s=await api('/api/auth/status');if(!s.codePending)showApproval(err.message,true,!!s.expiresAt)}catch(e){}}};
+$('request').onclick=async()=>{try{const data=await api('/api/auth/request-renewal',{});message(data.message)}catch(err){message(err.message,true)}};
+$('logout').onclick=async()=>{await api('/api/auth/logout',{});location.reload()};
+(async()=>{try{const s=await api('/api/auth/status');if(s.authenticated){if(s.active){location.replace('/app');return}showApproval(s.codePending?'A one-time code is pending. Contact the owner to receive it.':s.expiresAt?'Your monthly access has expired. Request a fresh code and contact the owner.':'Your activation code expired or is unavailable. Request a replacement and contact the owner.',!s.codePending,!!s.expiresAt)}}catch(err){message(err.message,true)}})();
+</script></body></html>

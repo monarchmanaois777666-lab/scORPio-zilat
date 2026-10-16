@@ -1,0 +1,7 @@
+member_auth.sqlite3
+member_auth.sqlite3-shm
+member_auth.sqlite3-wal
+.venv/
+.env
+__pycache__/
+*.py[cod]

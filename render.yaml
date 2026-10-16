@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: scorpio-zilat-members
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    disk:
+      name: member-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: MEMBER_DB_PATH
+        value: /data/members.sqlite3
+      - key: MEMBER_OWNER_EMAIL
+        sync: false
+      - key: MEMBER_SMTP_HOST
+        sync: false
+      - key: MEMBER_SMTP_PORT
+        sync: false
+      - key: MEMBER_SMTP_USERNAME
+        sync: false
+      - key: MEMBER_SMTP_PASSWORD
+        sync: false
+      - key: MEMBER_SMTP_FROM
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
